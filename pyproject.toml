@@ -1,0 +1,24 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "enkly"
+version = "0.1.0"
+description = "Analytics for the rest of us. DuckDB-powered reports and insights for small and medium businesses."
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi>=0.104.0",
+    "uvicorn[standard]>=0.24.0",
+    "duckdb>=1.0.0",
+    "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "httpx>=0.25.0",
+]
+
+[project.scripts]
+enkly = "enkly.__main__:main"

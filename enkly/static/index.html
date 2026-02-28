@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enkly</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+<div class="layout">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="logo">
+            <span class="logo-mark">E</span>
+            <span class="logo-text">enkly</span>
+        </div>
+
+        <nav class="nav">
+            <button class="nav-btn active" data-view="explore">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                Explorar
+            </button>
+            <button class="nav-btn" data-view="sql">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+                SQL
+            </button>
+        </nav>
+
+        <div class="sidebar-section">
+            <div class="sidebar-label">Modelo</div>
+            <div id="model-name" class="model-badge">Carregando...</div>
+        </div>
+
+        <div class="sidebar-section">
+            <div class="sidebar-label">Metricas</div>
+            <div id="metrics-list" class="tag-list"></div>
+        </div>
+
+        <div class="sidebar-section">
+            <div class="sidebar-label">Dimensoes</div>
+            <div id="dimensions-list" class="tag-list"></div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main">
+        <!-- Explore View -->
+        <div id="view-explore" class="view active">
+            <div class="view-header">
+                <h1>Explorar</h1>
+                <p class="subtitle">Escolha metricas e dimensoes, veja o resultado.</p>
+            </div>
+
+            <div class="query-builder">
+                <div class="builder-row">
+                    <div class="builder-field">
+                        <label>Metricas</label>
+                        <div id="picker-metrics" class="chip-picker"></div>
+                    </div>
+                    <div class="builder-field">
+                        <label>Dimensoes</label>
+                        <div id="picker-dimensions" class="chip-picker"></div>
+                    </div>
+                </div>
+
+                <div class="builder-actions">
+                    <button id="btn-run" class="btn-primary" disabled>Executar</button>
+                    <button id="btn-clear" class="btn-ghost">Limpar</button>
+                </div>
+            </div>
+
+            <!-- Results -->
+            <div id="results" class="results hidden">
+                <div class="results-header">
+                    <div class="results-meta">
+                        <span id="row-count" class="badge"></span>
+                        <span id="chart-type-badge" class="badge badge-accent"></span>
+                    </div>
+                    <div class="results-actions">
+                        <button id="btn-toggle-chart" class="btn-small">Tabela / Grafico</button>
+                        <button id="btn-show-sql" class="btn-small">Ver SQL</button>
+                        <button id="btn-export-csv" class="btn-small">Exportar CSV</button>
+                    </div>
+                </div>
+
+                <div id="sql-preview" class="sql-preview hidden">
+                    <pre><code id="sql-code"></code></pre>
+                </div>
+
+                <div id="chart-container" class="chart-container hidden">
+                    <canvas id="chart-canvas"></canvas>
+                </div>
+
+                <div id="table-container" class="table-container">
+                    <table id="results-table">
+                        <thead id="table-head"></thead>
+                        <tbody id="table-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- SQL View -->
+        <div id="view-sql" class="view">
+            <div class="view-header">
+                <h1>SQL</h1>
+                <p class="subtitle">Escreva SQL diretamente contra seus dados.</p>
+            </div>
+
+            <div class="sql-editor-wrap">
+                <textarea id="sql-editor" class="sql-editor" placeholder="SELECT * FROM orders LIMIT 10" spellcheck="false"></textarea>
+                <div class="builder-actions">
+                    <button id="btn-run-sql" class="btn-primary">Executar SQL</button>
+                </div>
+            </div>
+
+            <div id="sql-results" class="results hidden">
+                <div class="results-header">
+                    <div class="results-meta">
+                        <span id="sql-row-count" class="badge"></span>
+                    </div>
+                    <div class="results-actions">
+                        <button id="btn-export-sql-csv" class="btn-small">Exportar CSV</button>
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table id="sql-results-table">
+                        <thead id="sql-table-head"></thead>
+                        <tbody id="sql-table-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script src="/app.js"></script>
+</body>
+</html>

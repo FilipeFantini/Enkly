@@ -1,0 +1,79 @@
+name: sample_sales
+display_name: "Vendas"
+
+sources:
+  orders:
+    path: "data/orders.csv"
+    type: csv
+  customers:
+    path: "data/customers.csv"
+    type: csv
+
+entities:
+  orders:
+    source: orders
+    columns:
+      order_id: { type: integer, primary: true }
+      customer_id: { type: integer }
+      product: { type: string }
+      quantity: { type: integer }
+      price: { type: decimal }
+      order_date: { type: date }
+      region: { type: string }
+
+  customers:
+    source: customers
+    columns:
+      customer_id: { type: integer, primary: true }
+      name: { type: string }
+      email: { type: string }
+      segment: { type: string }
+
+relationships:
+  - from: orders.customer_id
+    to: customers.customer_id
+    type: many_to_one
+
+metrics:
+  total_revenue:
+    display_name: "Receita Total"
+    expression: "SUM(orders.price * orders.quantity)"
+    format: currency
+
+  order_count:
+    display_name: "Qtd. Pedidos"
+    expression: "COUNT(orders.order_id)"
+    format: number
+
+  avg_ticket:
+    display_name: "Ticket Medio"
+    expression: "SUM(orders.price * orders.quantity) / COUNT(DISTINCT orders.order_id)"
+    format: currency
+
+  unique_customers:
+    display_name: "Clientes Unicos"
+    expression: "COUNT(DISTINCT orders.customer_id)"
+    format: number
+
+  avg_quantity:
+    display_name: "Qtd. Media por Pedido"
+    expression: "AVG(orders.quantity)"
+    format: number
+
+dimensions:
+  region:
+    display_name: "Regiao"
+    expression: "orders.region"
+
+  product:
+    display_name: "Produto"
+    expression: "orders.product"
+
+  order_month:
+    display_name: "Mes"
+    expression: "DATE_TRUNC('month', orders.order_date::DATE)"
+
+  customer_segment:
+    display_name: "Segmento"
+    expression: "customers.segment"
+    requires_join: [customers]
