@@ -1,5 +1,6 @@
 """FastAPI application — the heart of Enkly."""
 
+import json
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -12,6 +13,8 @@ from .engine.semantic import parse_model
 
 MODELS_DIR = Path("models")
 DATA_DIR = Path("data")
+UPLOADS_DIR = DATA_DIR / "uploads"
+REGISTRY_PATH = DATA_DIR / "registry.json"
 
 
 def _find_model() -> Path | None:
@@ -103,8 +106,20 @@ async def lifespan(app: FastAPI):
         except FileNotFoundError as e:
             print(f"  Warning: {e}")
 
+    # Load user-uploaded sources from registry
+    UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
+    if REGISTRY_PATH.exists():
+        with open(REGISTRY_PATH) as f:
+            registry = json.load(f)
+        for entry in registry:
+            try:
+                db.register_source(entry["table_name"], entry["file_path"], entry["file_type"])
+                print(f"  Loaded registry source: {entry['table_name']} ({entry['file_path']})")
+            except Exception as e:
+                print(f"  Warning: could not load {entry['table_name']}: {e}")
+
     # Wire up the API
-    routes.init(db, model)
+    routes.init(db, model, REGISTRY_PATH, UPLOADS_DIR)
 
     print(f"\n  Enkly ready — model '{model.display_name}' loaded")
     print(f"  Open http://localhost:8000 in your browser\n")

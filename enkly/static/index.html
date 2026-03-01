@@ -25,6 +25,10 @@
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
                 Explorar
             </button>
+            <button class="nav-btn" data-view="catalog">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>
+                Catalogo
+            </button>
             <button class="nav-btn" data-view="sql">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
                 SQL
@@ -105,6 +109,60 @@
             </div>
         </div>
 
+        <!-- Catalog View -->
+        <div id="view-catalog" class="view">
+            <div class="view-header catalog-header">
+                <div>
+                    <h1>Catalogo de Dados</h1>
+                    <p class="subtitle">Todas as suas fontes de dados em um so lugar.</p>
+                </div>
+                <button id="btn-add-source" class="btn-primary">+ Adicionar Dados</button>
+            </div>
+
+            <div class="catalog-layout">
+                <!-- Source list -->
+                <div class="catalog-sidebar">
+                    <div id="catalog-list" class="catalog-list"></div>
+                </div>
+
+                <!-- Table detail -->
+                <div class="catalog-detail">
+                    <div id="catalog-empty-state" class="catalog-empty">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.3"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.66 4.03 3 9 3s9-1.34 9-3V5"/><path d="M3 12c0 1.66 4.03 3 9 3s9-1.34 9-3"/></svg>
+                        <p>Selecione uma fonte para ver os detalhes</p>
+                    </div>
+                    <div id="catalog-detail-panel" class="hidden">
+                        <div class="detail-header">
+                            <div>
+                                <h2 id="detail-table-name"></h2>
+                                <div class="detail-meta">
+                                    <span id="detail-rows" class="badge"></span>
+                                    <span id="detail-cols" class="badge"></span>
+                                    <span id="detail-type" class="badge badge-accent"></span>
+                                </div>
+                            </div>
+                            <button id="btn-load-sample" class="btn-ghost">Ver amostra</button>
+                        </div>
+
+                        <div class="detail-section">
+                            <div class="detail-section-title">Colunas</div>
+                            <div id="detail-columns" class="columns-grid"></div>
+                        </div>
+
+                        <div id="detail-sample-section" class="detail-section hidden">
+                            <div class="detail-section-title">Amostra (20 linhas)</div>
+                            <div class="table-container">
+                                <table id="detail-sample-table">
+                                    <thead id="detail-sample-head"></thead>
+                                    <tbody id="detail-sample-body"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- SQL View -->
         <div id="view-sql" class="view">
             <div class="view-header">
@@ -137,6 +195,61 @@
             </div>
         </div>
     </main>
+</div>
+
+<!-- Upload Modal -->
+<div id="upload-modal" class="modal-overlay hidden">
+    <div class="modal">
+        <div class="modal-header">
+            <h2>Adicionar Dados</h2>
+            <button id="btn-modal-close" class="modal-close">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+            </button>
+        </div>
+
+        <div id="upload-drop-zone" class="drop-zone">
+            <input type="file" id="upload-file-input" accept=".csv,.json,.parquet" class="hidden">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="drop-icon"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
+            <p class="drop-title">Arraste um arquivo aqui</p>
+            <p class="drop-sub">ou <button class="link-btn" id="btn-browse">clique para selecionar</button></p>
+            <p class="drop-formats">CSV · JSON · Parquet</p>
+        </div>
+
+        <div id="upload-form" class="upload-form hidden">
+            <div class="upload-file-info">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></svg>
+                <span id="upload-filename"></span>
+                <button class="link-btn" id="btn-change-file">trocar</button>
+            </div>
+
+            <div class="form-field">
+                <label for="input-table-name">Nome da tabela</label>
+                <input type="text" id="input-table-name" class="text-input" placeholder="ex: vendas_2024">
+                <span class="form-hint">Sera o nome usado no SQL. Apenas letras, numeros e _</span>
+            </div>
+
+            <div id="upload-preview" class="hidden">
+                <div class="detail-section-title">Preview</div>
+                <div class="table-container">
+                    <table id="preview-table">
+                        <thead id="preview-head"></thead>
+                        <tbody id="preview-body"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="modal-actions">
+                <button id="btn-cancel-upload" class="btn-ghost">Cancelar</button>
+                <button id="btn-confirm-upload" class="btn-primary">Adicionar fonte</button>
+            </div>
+        </div>
+
+        <div id="upload-success" class="upload-success hidden">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            <h3 id="upload-success-msg"></h3>
+            <button id="btn-upload-done" class="btn-primary">Ver no catálogo</button>
+        </div>
+    </div>
 </div>
 
 <script src="/app.js"></script>

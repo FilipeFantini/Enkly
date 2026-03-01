@@ -12,6 +12,7 @@ dependencies = [
     "uvicorn[standard]>=0.24.0",
     "duckdb>=1.0.0",
     "pyyaml>=6.0",
+    "python-multipart>=0.0.9",
 ]
 
 [project.optional-dependencies]

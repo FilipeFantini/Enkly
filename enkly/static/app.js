@@ -21,6 +21,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadModel();
     setupNavigation();
     setupActions();
+    setupUploadModal();
 });
 
 async function loadModel() {
@@ -126,6 +127,8 @@ function setupNavigation() {
             btn.classList.add('active');
             document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
             document.getElementById(`view-${view}`).classList.add('active');
+
+            if (view === 'catalog') loadCatalog();
         });
     });
 }
@@ -455,4 +458,229 @@ function downloadFile(content, filename, type) {
     a.download = filename;
     a.click();
     URL.revokeObjectURL(url);
+}
+
+// ---- Catalog ----
+
+let catalogData = [];
+let selectedTable = null;
+
+async function loadCatalog() {
+    try {
+        const res = await fetch(`${API}/catalog`);
+        if (!res.ok) throw new Error('Failed to load catalog');
+        catalogData = await res.json();
+        renderCatalogList();
+    } catch (e) {
+        console.error(e);
+    }
+}
+
+function renderCatalogList() {
+    const list = document.getElementById('catalog-list');
+    list.innerHTML = '';
+
+    for (const entry of catalogData) {
+        const item = document.createElement('div');
+        item.className = 'catalog-item' + (selectedTable === entry.table_name ? ' active' : '');
+        item.dataset.table = entry.table_name;
+
+        const ext = entry.source?.type || '?';
+        item.innerHTML = `
+            <div class="catalog-item-icon">${ext}</div>
+            <div class="catalog-item-info">
+                <div class="catalog-item-name">${entry.table_name}</div>
+                <div class="catalog-item-sub">${entry.row_count.toLocaleString('pt-BR')} linhas · ${entry.column_count} colunas</div>
+            </div>`;
+
+        item.addEventListener('click', () => showTableDetail(entry));
+        list.appendChild(item);
+    }
+}
+
+function showTableDetail(entry) {
+    selectedTable = entry.table_name;
+    renderCatalogList();
+
+    document.getElementById('catalog-empty-state').classList.add('hidden');
+    const panel = document.getElementById('catalog-detail-panel');
+    panel.classList.remove('hidden');
+
+    document.getElementById('detail-table-name').textContent = entry.table_name;
+    document.getElementById('detail-rows').textContent = `${entry.row_count.toLocaleString('pt-BR')} linhas`;
+    document.getElementById('detail-cols').textContent = `${entry.column_count} colunas`;
+
+    const typeBadge = document.getElementById('detail-type');
+    typeBadge.textContent = (entry.source?.type || 'unknown').toUpperCase();
+
+    // Render columns
+    const colsContainer = document.getElementById('detail-columns');
+    colsContainer.innerHTML = '';
+    for (const col of entry.columns) {
+        const typeKey = col.type.split('(')[0].toLowerCase().replace(/\s/g, '');
+        const row = document.createElement('div');
+        row.className = 'column-row';
+        row.innerHTML = `
+            <span class="column-name">${col.name}</span>
+            <span class="column-type-badge type-${typeKey}">${col.type}</span>`;
+        colsContainer.appendChild(row);
+    }
+
+    // Hide sample until requested
+    document.getElementById('detail-sample-section').classList.add('hidden');
+    document.getElementById('btn-load-sample').onclick = () => loadSample(entry.table_name);
+}
+
+async function loadSample(tableName) {
+    try {
+        const res = await fetch(`${API}/catalog/${tableName}/sample`);
+        if (!res.ok) throw new Error('Failed to load sample');
+        const data = await res.json();
+
+        const section = document.getElementById('detail-sample-section');
+        section.classList.remove('hidden');
+
+        const rawCols = data.columns.map(c => ({ ...c, type: 'raw', format: undefined }));
+        renderTable(rawCols, data.data, 'detail-sample-head', 'detail-sample-body');
+    } catch (e) {
+        console.error(e);
+    }
+}
+
+// ---- Upload Modal ----
+
+let pendingFile = null;
+
+function setupUploadModal() {
+    const openBtn = document.getElementById('btn-add-source');
+    const overlay = document.getElementById('upload-modal');
+    const closeBtn = document.getElementById('btn-modal-close');
+    const cancelBtn = document.getElementById('btn-cancel-upload');
+    const dropZone = document.getElementById('upload-drop-zone');
+    const fileInput = document.getElementById('upload-file-input');
+    const browseBtn = document.getElementById('btn-browse');
+    const changeBtn = document.getElementById('btn-change-file');
+    const confirmBtn = document.getElementById('btn-confirm-upload');
+    const doneBtn = document.getElementById('btn-upload-done');
+
+    openBtn.addEventListener('click', () => openUploadModal());
+    closeBtn.addEventListener('click', closeUploadModal);
+    cancelBtn.addEventListener('click', closeUploadModal);
+    doneBtn.addEventListener('click', () => {
+        closeUploadModal();
+        loadCatalog();
+    });
+
+    browseBtn.addEventListener('click', () => fileInput.click());
+    changeBtn.addEventListener('click', () => {
+        fileInput.value = '';
+        fileInput.click();
+    });
+    fileInput.addEventListener('change', () => {
+        if (fileInput.files[0]) onFileSelected(fileInput.files[0]);
+    });
+
+    // Drag and drop
+    dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropZone.classList.add('drag-over');
+    });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('drag-over');
+        const file = e.dataTransfer.files[0];
+        if (file) onFileSelected(file);
+    });
+
+    // Click on drop zone
+    dropZone.addEventListener('click', (e) => {
+        if (e.target !== browseBtn) fileInput.click();
+    });
+
+    confirmBtn.addEventListener('click', doUpload);
+}
+
+function openUploadModal() {
+    pendingFile = null;
+    document.getElementById('upload-modal').classList.remove('hidden');
+    document.getElementById('upload-drop-zone').classList.remove('hidden');
+    document.getElementById('upload-form').classList.add('hidden');
+    document.getElementById('upload-success').classList.add('hidden');
+    document.getElementById('upload-preview').classList.add('hidden');
+    document.getElementById('input-table-name').value = '';
+}
+
+function closeUploadModal() {
+    document.getElementById('upload-modal').classList.add('hidden');
+    pendingFile = null;
+}
+
+function onFileSelected(file) {
+    const allowed = ['csv', 'json', 'parquet'];
+    const ext = file.name.split('.').pop().toLowerCase();
+    if (!allowed.includes(ext)) {
+        alert(`Formato não suportado: .${ext}. Use CSV, JSON ou Parquet.`);
+        return;
+    }
+
+    pendingFile = file;
+    document.getElementById('upload-drop-zone').classList.add('hidden');
+    document.getElementById('upload-form').classList.remove('hidden');
+    document.getElementById('upload-success').classList.add('hidden');
+    document.getElementById('upload-filename').textContent = file.name;
+
+    // Auto-derive table name from filename
+    const suggested = file.name
+        .replace(/\.[^.]+$/, '')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '_')
+        .replace(/^_+|_+$/g, '');
+    document.getElementById('input-table-name').value = suggested;
+}
+
+async function doUpload() {
+    if (!pendingFile) return;
+
+    const tableName = document.getElementById('input-table-name').value.trim();
+    if (!tableName) {
+        alert('Informe o nome da tabela.');
+        return;
+    }
+
+    const btn = document.getElementById('btn-confirm-upload');
+    btn.textContent = 'Enviando...';
+    btn.disabled = true;
+
+    const formData = new FormData();
+    formData.append('file', pendingFile);
+    formData.append('table_name', tableName);
+
+    try {
+        const res = await fetch(`${API}/sources/upload`, {
+            method: 'POST',
+            body: formData,
+        });
+
+        if (!res.ok) {
+            const err = await res.json();
+            alert(`Erro: ${err.detail}`);
+            return;
+        }
+
+        const data = await res.json();
+
+        document.getElementById('upload-form').classList.add('hidden');
+        const successEl = document.getElementById('upload-success');
+        successEl.classList.remove('hidden');
+        document.getElementById('upload-success-msg').textContent =
+            `"${data.table_name}" adicionado — ${data.row_count.toLocaleString('pt-BR')} linhas, ${data.column_count} colunas`;
+
+        await loadCatalog();
+    } catch (e) {
+        alert(`Erro de conexão: ${e.message}`);
+    } finally {
+        btn.textContent = 'Adicionar fonte';
+        btn.disabled = false;
+    }
 }

@@ -76,5 +76,13 @@ class DuckDBConnection:
             for row in result.fetchall()
         ]
 
+    def get_table_stats(self, table_name: str) -> dict:
+        count = self.conn.execute(f"SELECT COUNT(*) FROM {table_name}").fetchone()[0]
+        columns = self.get_table_columns(table_name)
+        return {"row_count": count, "column_count": len(columns)}
+
+    def get_sample(self, table_name: str, limit: int = 20) -> list[dict]:
+        return self.execute(f"SELECT * FROM {table_name} LIMIT {limit}")
+
     def close(self) -> None:
         self.conn.close()
